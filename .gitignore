@@ -1,0 +1,61 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+
+# Environment variables
+.env
+
+# Model artifacts (large files — use DVC or cloud storage)
+models/artifacts/*.pkl
+models/registry/
+
+# Data
+data/raw/*
+data/processed/*
+data/drift/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/drift/.gitkeep
+
+# MLflow
+mlruns/
+mlflow.db
+
+# Testing & Coverage
+.pytest_cache/
+.coverage
+htmlcov/
+coverage.xml
+*.xml
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Notebooks checkpoints
+.ipynb_checkpoints/
+
+# Docker volumes (local dev)
+prometheus_data/
+grafana_data/
+redis_data/

@@ -1,0 +1,245 @@
+name: MLOps CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Scheduled retraining check every Sunday at 2am UTC
+    - cron: '0 2 * * 0'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}/mlops-api
+  PYTHON_VERSION: "3.11"
+
+jobs:
+  # ─────────────────────────────────────────
+  # Job 1: Code Quality & Testing
+  # ─────────────────────────────────────────
+  test:
+    name: Test & Code Quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ env.PYTHON_VERSION }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install pytest pytest-asyncio pytest-cov flake8 black mypy
+
+      - name: Lint with flake8
+        run: flake8 src/ --max-line-length=120 --ignore=E501,W503
+
+      - name: Check formatting with black
+        run: black --check src/ tests/
+
+      - name: Type check with mypy
+        run: mypy src/ --ignore-missing-imports --no-strict-optional
+        continue-on-error: true
+
+      - name: Run unit tests
+        run: |
+          pytest tests/ \
+            --cov=src \
+            --cov-report=xml \
+            --cov-report=term-missing \
+            -v \
+            --tb=short
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          files: ./coverage.xml
+          fail_ci_if_error: false
+
+  # ─────────────────────────────────────────
+  # Job 2: Model Validation
+  # ─────────────────────────────────────────
+  model-validation:
+    name: Model Quality Gate
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run model validation checks
+        run: python scripts/validate_model.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          MIN_ACCURACY: "0.75"
+          MIN_F1_SCORE: "0.70"
+
+      - name: Check for data drift
+        run: python scripts/check_drift.py
+        continue-on-error: true
+
+  # ─────────────────────────────────────────
+  # Job 3: Security Scanning
+  # ─────────────────────────────────────────
+  security:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Bandit security linter
+        uses: jpetrucciani/bandit-check@main
+        with:
+          path: src/
+        continue-on-error: true
+
+      - name: Check for dependency vulnerabilities
+        run: |
+          pip install safety
+          safety check -r requirements.txt --json || true
+
+  # ─────────────────────────────────────────
+  # Job 4: Build Docker Image
+  # ─────────────────────────────────────────
+  build:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [test, model-validation]
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Docker metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=ref,event=branch
+            type=sha,prefix=sha-
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=semver,pattern={{version}}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: docker/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ─────────────────────────────────────────
+  # Job 5: Deploy to Staging
+  # ─────────────────────────────────────────
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    needs: build
+    environment: staging
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to staging environment
+        run: |
+          echo "Deploying to staging..."
+          # In production: use kubectl, helm, or cloud CLI
+          # kubectl set image deployment/mlops-api api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:sha-${{ github.sha }}
+
+      - name: Run smoke tests against staging
+        run: |
+          echo "Running smoke tests..."
+          # curl -f https://staging.mlops.example.com/health
+
+      - name: Notify deployment
+        run: echo "Staging deployment complete: ${{ github.sha }}"
+
+  # ─────────────────────────────────────────
+  # Job 6: Deploy to Production
+  # ─────────────────────────────────────────
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+    environment: production  # Requires manual approval in GitHub
+
+    steps:
+      - name: Deploy to production
+        run: |
+          echo "Deploying to production..."
+          # kubectl set image deployment/mlops-api api=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+
+      - name: Verify production health
+        run: |
+          echo "Verifying production deployment..."
+          # curl -f https://api.mlops.example.com/health
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v1
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          generate_release_notes: true
+
+  # ─────────────────────────────────────────
+  # Job 7: Scheduled Model Retraining
+  # ─────────────────────────────────────────
+  scheduled-retrain:
+    name: Scheduled Model Retraining
+    runs-on: ubuntu-latest
+    if: github.event_name == 'schedule'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Trigger retraining pipeline
+        run: python scripts/trigger_retraining.py
+        env:
+          PYTHONPATH: ${{ github.workspace }}
+          API_URL: ${{ secrets.PRODUCTION_API_URL }}
+          API_KEY: ${{ secrets.API_KEY }}

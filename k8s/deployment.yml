@@ -1,0 +1,176 @@
+---
+# ─────────────────────────────────────────────────────────────
+# MLOps Platform — Kubernetes Manifests
+# Apply with: kubectl apply -f k8s/deployment.yml
+# ─────────────────────────────────────────────────────────────
+
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: mlops
+
+---
+# ConfigMap
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mlops-config
+  namespace: mlops
+data:
+  LOG_LEVEL: "INFO"
+  API_WORKERS: "4"
+  DRIFT_WINDOW_SIZE: "500"
+  DRIFT_CHECK_INTERVAL: "50"
+  RETRAINING_DRIFT_THRESHOLD: "3"
+  MLFLOW_TRACKING_URI: "http://mlflow-svc:5000"
+  REDIS_URL: "redis://redis-svc:6379"
+
+---
+# Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mlops-api
+  namespace: mlops
+  labels:
+    app: mlops-api
+    version: "1.0.0"
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mlops-api
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: mlops-api
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8000"
+        prometheus.io/path: "/metrics"
+    spec:
+      containers:
+        - name: api
+          image: ghcr.io/yourorg/mlops-platform/mlops-api:latest
+          ports:
+            - containerPort: 8000
+          envFrom:
+            - configMapRef:
+                name: mlops-config
+          env:
+            - name: API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: mlops-secrets
+                  key: api-key
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "2Gi"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 30
+            periodSeconds: 15
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 5
+          volumeMounts:
+            - name: model-storage
+              mountPath: /app/models
+      volumes:
+        - name: model-storage
+          persistentVolumeClaim:
+            claimName: model-pvc
+
+---
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: mlops-api-svc
+  namespace: mlops
+spec:
+  selector:
+    app: mlops-api
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8000
+  type: LoadBalancer
+
+---
+# Horizontal Pod Autoscaler
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: mlops-api-hpa
+  namespace: mlops
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: mlops-api
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+
+---
+# PersistentVolumeClaim for model artifacts
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: model-pvc
+  namespace: mlops
+spec:
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 10Gi
+
+---
+# CronJob for scheduled retraining
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: mlops-scheduled-retrain
+  namespace: mlops
+spec:
+  schedule: "0 2 * * 0"   # Every Sunday at 2am UTC
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: retrainer
+              image: ghcr.io/yourorg/mlops-platform/mlops-api:latest
+              command: ["python", "scripts/scheduled_retraining.py"]
+              envFrom:
+                - configMapRef:
+                    name: mlops-config
+          restartPolicy: OnFailure

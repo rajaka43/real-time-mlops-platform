@@ -1,0 +1,139 @@
+version: "3.9"
+
+services:
+  # ─────────────────────────────────────────
+  # Prediction API
+  # ─────────────────────────────────────────
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: mlops_api
+    ports:
+      - "8000:8000"
+    environment:
+      - LOG_LEVEL=INFO
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - REDIS_URL=redis://redis:6379
+      - PROMETHEUS_ENABLED=true
+    volumes:
+      - model_artifacts:/app/models
+      - ./data:/app/data
+    depends_on:
+      - redis
+      - mlflow
+    restart: unless-stopped
+    networks:
+      - mlops_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ─────────────────────────────────────────
+  # MLflow Experiment Tracking
+  # ─────────────────────────────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v2.10.0
+    container_name: mlops_mlflow
+    ports:
+      - "5000:5000"
+    command: >
+      mlflow server
+        --backend-store-uri sqlite:///mlflow.db
+        --default-artifact-root /mlflow/artifacts
+        --host 0.0.0.0
+        --port 5000
+    volumes:
+      - mlflow_data:/mlflow
+    networks:
+      - mlops_network
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────
+  # Redis (Feature Cache & Task Queue)
+  # ─────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: mlops_redis
+    ports:
+      - "6379:6379"
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redis_data:/data
+    networks:
+      - mlops_network
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────
+  # Prometheus (Metrics Scraping)
+  # ─────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: mlops_prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./configs/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+
+      - prometheus_data:/prometheus
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.retention.time=30d
+    networks:
+      - mlops_network
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────
+  # Grafana (Monitoring Dashboard)
+  # ─────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.2.0
+    container_name: mlops_grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=mlops_admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ../configs/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - ../configs/grafana/datasources:/etc/grafana/provisioning/datasources:ro
+    depends_on:
+      - prometheus
+    networks:
+      - mlops_network
+    restart: unless-stopped
+
+  # ─────────────────────────────────────────
+  # Scheduled Retraining Worker (Celery)
+  # ─────────────────────────────────────────
+  worker:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: mlops_worker
+    command: python -m scripts.scheduled_retraining
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow:5000
+      - REDIS_URL=redis://redis:6379
+    volumes:
+      - model_artifacts:/app/models
+    depends_on:
+      - redis
+      - mlflow
+    networks:
+      - mlops_network
+    restart: unless-stopped
+
+volumes:
+  model_artifacts:
+  mlflow_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  mlops_network:
+    driver: bridge

@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MLOps Platform — Monitoring Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --bg2: #111827;
+    --bg3: #1a2235;
+    --border: rgba(99,179,237,0.15);
+    --text: #e2e8f0;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --blue: #3b82f6;
+    --green: #10b981;
+    --amber: #f59e0b;
+    --red: #ef4444;
+    --purple: #8b5cf6;
+    --teal: #14b8a6;
+    --cyan: #06b6d4;
+    --font: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace;
+    --sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Header */
+  .header {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .logo {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, var(--blue), var(--purple));
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+  }
+
+  .header h1 {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+  }
+
+  .header-sub {
+    font-size: 12px;
+    color: var(--text3);
+    font-family: var(--font);
+  }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(16,185,129,0.1);
+    border: 1px solid rgba(16,185,129,0.3);
+    border-radius: 20px;
+    padding: 4px 12px;
+    font-size: 12px;
+    color: var(--green);
+    font-family: var(--font);
+  }
+
+  .status-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--green);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Nav tabs */
+  .nav {
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+    display: flex;
+    gap: 0;
+  }
+
+  .nav-tab {
+    padding: 12px 18px;
+    font-size: 13px;
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    user-select: none;
+  }
+
+  .nav-tab:hover { color: var(--text2); }
+  .nav-tab.active {
+    color: var(--blue);
+    border-bottom-color: var(--blue);
+  }
+
+  /* Main layout */
+  .main {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* Metric cards row */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 1100px) { .metrics-grid { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 700px) { .metrics-grid { grid-template-columns: 1fr 1fr; } }
+
+  .metric-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .metric-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .metric-card.blue::before { background: var(--blue); }
+  .metric-card.green::before { background: var(--green); }
+  .metric-card.amber::before { background: var(--amber); }
+  .metric-card.red::before { background: var(--red); }
+  .metric-card.purple::before { background: var(--purple); }
+
+  .metric-label {
+    font-size: 11px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+    margin-bottom: 8px;
+    font-family: var(--font);
+  }
+
+  .metric-value {
+    font-size: 26px;
+    font-weight: 700;
+    letter-spacing: -1px;
+    font-family: var(--font);
+    line-height: 1;
+  }
+
+  .metric-value.blue { color: var(--blue); }
+  .metric-value.green { color: var(--green); }
+  .metric-value.amber { color: var(--amber); }
+  .metric-value.red { color: var(--red); }
+  .metric-value.purple { color: var(--purple); }
+
+  .metric-change {
+    font-size: 11px;
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .metric-change.up { color: var(--green); }
+  .metric-change.down { color: var(--red); }
+  .metric-change.neutral { color: var(--text3); }
+
+  /* Charts grid */
+  .charts-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 900px) { .charts-grid { grid-template-columns: 1fr; } }
+
+  .chart-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+  }
+
+  .chart-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .chart-subtitle {
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 2px;
+    font-family: var(--font);
+  }
+
+  .badge {
+    font-size: 10px;
+    font-family: var(--font);
+    padding: 2px 8px;
+    border-radius: 4px;
+  }
+
+  .badge.green { background: rgba(16,185,129,0.15); color: var(--green); }
+  .badge.amber { background: rgba(245,158,11,0.15); color: var(--amber); }
+  .badge.red { background: rgba(239,68,68,0.15); color: var(--red); }
+  .badge.blue { background: rgba(59,130,246,0.15); color: var(--blue); }
+
+  .canvas-wrap { position: relative; height: 180px; }
+
+  /* Bottom grid */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+  }
+
+  @media (max-width: 1000px) { .bottom-grid { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 640px) { .bottom-grid { grid-template-columns: 1fr; } }
+
+  /* Model registry table */
+  .table-wrap { overflow-x: auto; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+  }
+
+  th {
+    text-align: left;
+    padding: 8px 12px;
+    color: var(--text3);
+    font-weight: 500;
+    font-family: var(--font);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  td {
+    padding: 9px 12px;
+    border-bottom: 1px solid rgba(99,179,237,0.06);
+    color: var(--text2);
+    font-family: var(--font);
+    font-size: 11px;
+  }
+
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* Drift feature bars */
+  .drift-item {
+    margin-bottom: 12px;
+  }
+
+  .drift-label-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+  }
+
+  .drift-name { font-size: 11px; color: var(--text2); font-family: var(--font); }
+  .drift-val { font-size: 11px; font-family: var(--font); }
+
+  .drift-bar-bg {
+    height: 5px;
+    background: var(--bg3);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .drift-bar-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 1.5s ease;
+  }
+
+  /* Pipeline steps */
+  .pipeline-steps { display: flex; flex-direction: column; gap: 8px; }
+
+  .pipeline-step {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    transition: border-color 0.3s;
+  }
+
+  .pipeline-step.running { border-color: var(--blue); }
+  .pipeline-step.done { border-color: rgba(16,185,129,0.3); }
+  .pipeline-step.pending { opacity: 0.5; }
+
+  .step-icon {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    flex-shrink: 0;
+  }
+
+  .step-icon.done { background: rgba(16,185,129,0.2); color: var(--green); }
+  .step-icon.running {
+    background: rgba(59,130,246,0.2);
+    color: var(--blue);
+    animation: spin 1.5s linear infinite;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .step-icon.pending { background: var(--bg2); color: var(--text3); }
+
+  .step-name { font-size: 12px; color: var(--text); flex: 1; }
+  .step-time { font-size: 10px; color: var(--text3); font-family: var(--font); }
+
+  /* Tab panels */
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="header-left">
+    <div class="logo">🤖</div>
+    <div>
+      <h1>MLOps Platform</h1>
+      <div class="header-sub">Prediction Engine v1.0.0 · model: gbc_v1_0_0</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div style="font-size:11px;color:var(--text3);font-family:var(--font)" id="clock"></div>
+    <div class="status-pill">
+      <div class="status-dot"></div>
+      All Systems Operational
+    </div>
+  </div>
+</div>
+
+<!-- Nav -->
+<div class="nav">
+  <div class="nav-tab active" onclick="switchTab('overview', this)">Overview</div>
+  <div class="nav-tab" onclick="switchTab('drift', this)">Drift Monitor</div>
+  <div class="nav-tab" onclick="switchTab('models', this)">Model Registry</div>
+  <div class="nav-tab" onclick="switchTab('pipeline', this)">Pipeline</div>
+</div>
+
+<!-- Main -->
+<div class="main">
+
+  <!-- ════ OVERVIEW TAB ════ -->
+  <div class="tab-panel active" id="tab-overview">
+
+    <!-- Metric cards -->
+    <div class="metrics-grid">
+      <div class="metric-card blue">
+        <div class="metric-label">Total Predictions</div>
+        <div class="metric-value blue" id="m-preds">0</div>
+        <div class="metric-change up">↑ +142 this hour</div>
+      </div>
+      <div class="metric-card green">
+        <div class="metric-label">Model Accuracy</div>
+        <div class="metric-value green" id="m-acc">—</div>
+        <div class="metric-change up">↑ +0.8% vs last model</div>
+      </div>
+      <div class="metric-card amber">
+        <div class="metric-label">P95 Latency</div>
+        <div class="metric-value amber" id="m-lat">—</div>
+        <div class="metric-change neutral">Target: &lt;200ms</div>
+      </div>
+      <div class="metric-card red">
+        <div class="metric-label">Drift Alerts</div>
+        <div class="metric-value red" id="m-drift">0</div>
+        <div class="metric-change neutral">Last 24 hours</div>
+      </div>
+      <div class="metric-card purple">
+        <div class="metric-label">Avg Confidence</div>
+        <div class="metric-value purple" id="m-conf">—</div>
+        <div class="metric-change neutral">Rolling 1000 preds</div>
+      </div>
+    </div>
+
+    <!-- Charts -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Prediction Volume</div>
+            <div class="chart-subtitle">Requests per minute (live)</div>
+          </div>
+          <span class="badge blue">LIVE</span>
+        </div>
+        <div class="canvas-wrap"><canvas id="chartVolume"></canvas></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Latency Distribution</div>
+            <div class="chart-subtitle">P50 / P95 / P99</div>
+          </div>
+          <span class="badge green" id="latency-badge">p95: —</span>
+        </div>
+        <div class="canvas-wrap"><canvas id="chartLatency"></canvas></div>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Model Accuracy Over Time</div>
+            <div class="chart-subtitle">Rolling 7-day accuracy from feedback</div>
+          </div>
+          <span class="badge green">Stable</span>
+        </div>
+        <div class="canvas-wrap"><canvas id="chartAccuracy"></canvas></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Confidence Distribution</div>
+            <div class="chart-subtitle">Prediction confidence buckets</div>
+          </div>
+        </div>
+        <div class="canvas-wrap"><canvas id="chartConf"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ DRIFT TAB ════ -->
+  <div class="tab-panel" id="tab-drift">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Drift Detection Timeline</div>
+            <div class="chart-subtitle">PSI score per check interval</div>
+          </div>
+          <span class="badge green" id="drift-status-badge">Stable</span>
+        </div>
+        <div class="canvas-wrap" style="height:200px"><canvas id="chartDriftTimeline"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Drift by Feature</div>
+            <div class="chart-subtitle">Current PSI vs threshold (0.20)</div>
+          </div>
+        </div>
+        <div id="drift-bars" style="margin-top:8px"></div>
+      </div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-header">
+        <div class="chart-title">Statistical Test Results</div>
+        <div class="chart-subtitle">Latest drift analysis across all features</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Feature</th>
+              <th>KS Statistic</th>
+              <th>P-Value</th>
+              <th>PSI</th>
+              <th>JS Divergence</th>
+              <th>Severity</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="drift-table"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ MODELS TAB ════ -->
+  <div class="tab-panel" id="tab-models">
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Model Registry</div>
+          <div class="chart-subtitle">All registered model versions</div>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Model ID</th>
+                <th>Version</th>
+                <th>Algorithm</th>
+                <th>Accuracy</th>
+                <th>F1</th>
+                <th>Samples</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="model-table"></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">Performance Comparison</div>
+          <div class="chart-subtitle">Accuracy across versions</div>
+        </div>
+        <div class="canvas-wrap" style="height:220px"><canvas id="chartModelComp"></canvas></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ PIPELINE TAB ════ -->
+  <div class="tab-panel" id="tab-pipeline">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="chart-card">
+        <div class="chart-header">
+          <div>
+            <div class="chart-title">Retraining Pipeline</div>
+            <div class="chart-subtitle" id="pipeline-job-id">Last job: —</div>
+          </div>
+          <button onclick="simulateRetraining()" style="background:rgba(59,130,246,0.15);border:1px solid rgba(59,130,246,0.4);color:var(--blue);padding:5px 12px;border-radius:6px;cursor:pointer;font-size:12px">▶ Simulate Run</button>
+        </div>
+        <div class="pipeline-steps" id="pipeline-steps"></div>
+      </div>
+
+      <div class="chart-card">
+        <div class="chart-header">
+          <div class="chart-title">CI/CD Status</div>
+          <div class="chart-subtitle">GitHub Actions workflow</div>
+        </div>
+        <div class="pipeline-steps" id="cicd-steps"></div>
+      </div>
+    </div>
+
+    <div class="chart-card" style="margin-top:16px">
+      <div class="chart-header">
+        <div class="chart-title">Retraining History</div>
+        <div class="chart-subtitle">Accuracy per training run</div>
+      </div>
+      <div class="canvas-wrap"><canvas id="chartRetrainingHistory"></canvas></div>
+    </div>
+  </div>
+
+</div><!-- /main -->
+
+<script>
+// ─── Utilities ───────────────────────────────────────────────
+const rand = (min, max) => Math.random() * (max - min) + min;
+const randInt = (min, max) => Math.floor(rand(min, max));
+const fmt = n => typeof n === 'number' ? n.toLocaleString() : n;
+
+// ─── Clock ───────────────────────────────────────────────────
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toUTCString().slice(0, 25);
+}
+updateClock(); setInterval(updateClock, 1000);
+
+// ─── Tab switching ───────────────────────────────────────────
+function switchTab(name, el) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+  el.classList.add('active');
+}
+
+// ─── Chart defaults ──────────────────────────────────────────
+const chartDefaults = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: { legend: { display: false } },
+  scales: {
+    x: {
+      grid: { color: 'rgba(99,179,237,0.07)' },
+      ticks: { color: '#64748b', font: { family: 'monospace', size: 10 } }
+    },
+    y: {
+      grid: { color: 'rgba(99,179,237,0.07)' },
+      ticks: { color: '#64748b', font: { family: 'monospace', size: 10 } }
+    }
+  }
+};
+
+// ─── Generate simulated data ─────────────────────────────────
+const now = new Date();
+const labels24h = Array.from({length: 24}, (_, i) => {
+  const h = new Date(now - (23 - i) * 3600000);
+  return h.getHours() + ':00';
+});
+
+const volumeData = Array.from({length: 24}, () => randInt(80, 320));
+const latencyP50 = Array.from({length: 24}, () => rand(8, 20).toFixed(1));
+const latencyP95 = Array.from({length: 24}, () => rand(25, 60).toFixed(1));
+const latencyP99 = Array.from({length: 24}, () => rand(60, 120).toFixed(1));
+const accuracyData = Array.from({length: 14}, (_, i) => (rand(0.82, 0.91)).toFixed(3));
+
+const featureNames = [
+  'age_normalized', 'income_normalized', 'credit_score_norm',
+  'loan_amount_norm', 'employment_years', 'debt_ratio'
+];
+const psiValues = featureNames.map(() => rand(0.02, 0.28).toFixed(3));
+const ksStats = featureNames.map(() => rand(0.05, 0.25).toFixed(3));
+const pValues = featureNames.map((_, i) => (psiValues[i] > 0.18 ? rand(0.001, 0.04) : rand(0.06, 0.4)).toFixed(3));
+const jsDivs = featureNames.map(() => rand(0.01, 0.15).toFixed(3));
+
+// ─── Update metrics cards ─────────────────────────────────────
+let totalPreds = 14237;
+let driftAlerts = 3;
+
+function updateMetrics() {
+  totalPreds += randInt(1, 8);
+  document.getElementById('m-preds').textContent = totalPreds.toLocaleString();
+  document.getElementById('m-acc').textContent = rand(0.855, 0.895).toFixed(3);
+  document.getElementById('m-lat').textContent = rand(28, 48).toFixed(1) + 'ms';
+  document.getElementById('m-drift').textContent = driftAlerts;
+  document.getElementById('m-conf').textContent = rand(0.81, 0.89).toFixed(3);
+  document.getElementById('latency-badge').textContent = 'p95: ' + rand(28, 48).toFixed(0) + 'ms';
+}
+updateMetrics();
+setInterval(updateMetrics, 3000);
+
+// ─── Volume chart ─────────────────────────────────────────────
+const chartVolumeData = [...volumeData];
+const ctxVolume = document.getElementById('chartVolume').getContext('2d');
+const chartVolume = new Chart(ctxVolume, {
+  type: 'line',
+  data: {
+    labels: labels24h,
+    datasets: [{
+      data: chartVolumeData,
+      borderColor: '#3b82f6',
+      backgroundColor: 'rgba(59,130,246,0.08)',
+      borderWidth: 1.5,
+      fill: true,
+      tension: 0.4,
+      pointRadius: 0
+    }]
+  },
+  options: { ...chartDefaults }
+});
+
+// Live update volume
+setInterval(() => {
+  chartVolumeData.shift();
+  chartVolumeData.push(randInt(60, 350));
+  chartVolume.data.datasets[0].data = [...chartVolumeData];
+  chartVolume.update('none');
+}, 2000);
+
+// ─── Latency chart (bar) ──────────────────────────────────────
+const ctxLat = document.getElementById('chartLatency').getContext('2d');
+new Chart(ctxLat, {
+  type: 'bar',
+  data: {
+    labels: labels24h.filter((_, i) => i % 4 === 0),
+    datasets: [
+      { label: 'P50', data: latencyP50.filter((_, i) => i % 4 === 0), backgroundColor: 'rgba(16,185,129,0.6)' },
+      { label: 'P95', data: latencyP95.filter((_, i) => i % 4 === 0), backgroundColor: 'rgba(245,158,11,0.6)' },
+      { label: 'P99', data: latencyP99.filter((_, i) => i % 4 === 0), backgroundColor: 'rgba(239,68,68,0.5)' }
+    ]
+  },
+  options: {
+    ...chartDefaults,
+    plugins: {
+      legend: {
+        display: true,
+        labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10 }
+      }
+    }
+  }
+});
+
+// ─── Accuracy chart ───────────────────────────────────────────
+const dayLabels = Array.from({length: 14}, (_, i) => {
+  const d = new Date(now - (13 - i) * 86400000);
+  return (d.getMonth()+1) + '/' + d.getDate();
+});
+
+const ctxAcc = document.getElementById('chartAccuracy').getContext('2d');
+new Chart(ctxAcc, {
+  type: 'line',
+  data: {
+    labels: dayLabels,
+    datasets: [
+      {
+        label: 'Accuracy',
+        data: accuracyData,
+        borderColor: '#10b981',
+        backgroundColor: 'rgba(16,185,129,0.06)',
+        fill: true,
+        tension: 0.3,
+        borderWidth: 2,
+        pointRadius: 3,
+        pointBackgroundColor: '#10b981'
+      },
+      {
+        label: 'Threshold',
+        data: Array(14).fill(0.75),
+        borderColor: 'rgba(239,68,68,0.4)',
+        borderDash: [4, 4],
+        borderWidth: 1,
+        pointRadius: 0,
+        fill: false
+      }
+    ]
+  },
+  options: {
+    ...chartDefaults,
+    plugins: {
+      legend: {
+        display: true,
+        labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 10 }
+      }
+    },
+    scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 0.65, max: 0.98 } }
+  }
+});
+
+// ─── Confidence distribution chart ───────────────────────────
+const ctxConf = document.getElementById('chartConf').getContext('2d');
+new Chart(ctxConf, {
+  type: 'bar',
+  data: {
+    labels: ['0.5-0.6', '0.6-0.7', '0.7-0.8', '0.8-0.9', '0.9-1.0'],
+    datasets: [{
+      data: [47, 183, 612, 1847, 3241],
+      backgroundColor: [
+        'rgba(239,68,68,0.6)',
+        'rgba(245,158,11,0.6)',
+        'rgba(59,130,246,0.6)',
+        'rgba(16,185,129,0.6)',
+        'rgba(139,92,246,0.7)'
+      ],
+      borderRadius: 4
+    }]
+  },
+  options: { ...chartDefaults }
+});
+
+// ─── Drift timeline ───────────────────────────────────────────
+const driftChecks = Array.from({length: 20}, () => rand(0.02, 0.26).toFixed(3));
+const ctxDT = document.getElementById('chartDriftTimeline').getContext('2d');
+const driftTimelineChart = new Chart(ctxDT, {
+  type: 'line',
+  data: {
+    labels: Array.from({length: 20}, (_, i) => `Check ${i+1}`),
+    datasets: [
+      {
+        data: driftChecks,
+        borderColor: '#8b5cf6',
+        backgroundColor: 'rgba(139,92,246,0.07)',
+        fill: true,
+        tension: 0.3,
+        borderWidth: 1.5,
+        pointRadius: 2
+      },
+      {
+        data: Array(20).fill(0.2),
+        borderColor: 'rgba(239,68,68,0.5)',
+        borderDash: [4, 4],
+        borderWidth: 1,
+        pointRadius: 0,
+        fill: false
+      }
+    ]
+  },
+  options: { ...chartDefaults, scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 0, max: 0.35 } } }
+});
+
+// ─── Drift feature bars ───────────────────────────────────────
+function renderDriftBars() {
+  const container = document.getElementById('drift-bars');
+  container.innerHTML = '';
+  const threshold = 0.20;
+
+  featureNames.forEach((name, i) => {
+    const psi = parseFloat(psiValues[i]);
+    const pct = Math.min((psi / 0.35) * 100, 100);
+    const color = psi >= 0.25 ? '#ef4444' : psi >= 0.2 ? '#f59e0b' : '#10b981';
+
+    container.innerHTML += `
+      <div class="drift-item">
+        <div class="drift-label-row">
+          <span class="drift-name">${name}</span>
+          <span class="drift-val" style="color:${color}">${psi} PSI</span>
+        </div>
+        <div class="drift-bar-bg">
+          <div class="drift-bar-fill" style="width:${pct}%;background:${color}"></div>
+        </div>
+      </div>`;
+  });
+}
+renderDriftBars();
+
+// ─── Drift table ──────────────────────────────────────────────
+function renderDriftTable() {
+  const tbody = document.getElementById('drift-table');
+  tbody.innerHTML = '';
+  featureNames.forEach((name, i) => {
+    const psi = parseFloat(psiValues[i]);
+    const pval = parseFloat(pValues[i]);
+    const sev = psi >= 0.25 ? 'HIGH' : psi >= 0.2 ? 'MEDIUM' : pval < 0.05 ? 'LOW' : 'NONE';
+    const sevColor = { HIGH: 'var(--red)', MEDIUM: 'var(--amber)', LOW: 'var(--blue)', NONE: 'var(--green)' }[sev];
+    const drifted = psi >= 0.2 || pval < 0.05;
+
+    tbody.innerHTML += `
+      <tr>
+        <td style="color:var(--text)">${name}</td>
+        <td>${ksStats[i]}</td>
+        <td style="color:${pval < 0.05 ? 'var(--red)' : 'var(--green)'}">${pValues[i]}</td>
+        <td style="color:${psi >= 0.2 ? 'var(--amber)' : 'var(--text2)'}">${psiValues[i]}</td>
+        <td>${jsDivs[i]}</td>
+        <td style="color:${sevColor}">${sev}</td>
+        <td><span class="badge ${drifted ? 'amber' : 'green'}">${drifted ? 'DRIFTED' : 'STABLE'}</span></td>
+      </tr>`;
+  });
+}
+renderDriftTable();
+
+// ─── Model registry table ─────────────────────────────────────
+const models = [
+  { id: 'gbc_v1_0_0', ver: '1.0.0', algo: 'GradientBoosting', acc: '0.8734', f1: '0.8621', samples: '5,000', status: 'production' },
+  { id: 'rfc_v1_8_0515', ver: '1.8.0515', algo: 'RandomForest', acc: '0.8612', f1: '0.8490', samples: '6,200', status: 'archived' },
+  { id: 'gbc_v1_7_0512', ver: '1.7.0512', algo: 'GradientBoosting', acc: '0.8543', f1: '0.8401', samples: '5,800', status: 'archived' },
+  { id: 'rfc_v2_staging', ver: '2.0515.1423', algo: 'RandomForest', acc: '0.8791', f1: '0.8680', samples: '7,100', status: 'staging' }
+];
+
+function renderModelTable() {
+  const tbody = document.getElementById('model-table');
+  tbody.innerHTML = '';
+  models.forEach(m => {
+    const statusColor = { production: 'green', staging: 'blue', archived: '' }[m.status];
+    tbody.innerHTML += `
+      <tr>
+        <td style="color:var(--text)">${m.id}</td>
+        <td>${m.ver}</td>
+        <td>${m.algo}</td>
+        <td style="color:var(--green)">${m.acc}</td>
+        <td>${m.f1}</td>
+        <td>${m.samples}</td>
+        <td><span class="badge ${statusColor}">${m.status.toUpperCase()}</span></td>
+      </tr>`;
+  });
+}
+renderModelTable();
+
+// ─── Model comparison chart ───────────────────────────────────
+const ctxMC = document.getElementById('chartModelComp').getContext('2d');
+new Chart(ctxMC, {
+  type: 'bar',
+  data: {
+    labels: ['v1.7', 'v1.8', 'v1.0 (prod)', 'v2.0 (stg)'],
+    datasets: [{
+      label: 'Accuracy',
+      data: [0.8543, 0.8612, 0.8734, 0.8791],
+      backgroundColor: ['rgba(100,116,139,0.5)', 'rgba(100,116,139,0.5)', 'rgba(16,185,129,0.7)', 'rgba(59,130,246,0.5)'],
+      borderRadius: 4
+    }]
+  },
+  options: {
+    ...chartDefaults,
+    scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 0.82, max: 0.91 } }
+  }
+});
+
+// ─── Pipeline steps ───────────────────────────────────────────
+const pipelineSteps = [
+  { name: 'Data Collection', icon: '📥', done: true, time: '2.1s' },
+  { name: 'Data Validation', icon: '✓', done: true, time: '0.4s' },
+  { name: 'Feature Engineering', icon: '⚙', done: true, time: '1.2s' },
+  { name: 'Hyperparameter Optimization (Optuna)', icon: '🔍', done: true, time: '42.7s' },
+  { name: 'Model Training', icon: '🧠', done: true, time: '18.3s' },
+  { name: 'Model Evaluation', icon: '📊', done: true, time: '3.1s' },
+  { name: 'Auto-Promotion Decision', icon: '🚀', done: true, time: '0.2s' }
+];
+
+function renderPipelineSteps(runningIdx = -1) {
+  const container = document.getElementById('pipeline-steps');
+  container.innerHTML = '';
+  pipelineSteps.forEach((step, i) => {
+    const state = i < runningIdx ? 'done' : i === runningIdx ? 'running' : runningIdx === -1 && step.done ? 'done' : 'pending';
+    const icons = { done: '✓', running: '↻', pending: '○' };
+    container.innerHTML += `
+      <div class="pipeline-step ${state}">
+        <div class="step-icon ${state}">${icons[state]}</div>
+        <div class="step-name">${step.name}</div>
+        <div class="step-time">${state === 'done' ? step.time : state === 'running' ? '...' : '—'}</div>
+      </div>`;
+  });
+  document.getElementById('pipeline-job-id').textContent = 'Last job: auto_20250515_143221';
+}
+renderPipelineSteps();
+
+function simulateRetraining() {
+  let step = 0;
+  const interval = setInterval(() => {
+    renderPipelineSteps(step);
+    step++;
+    if (step > pipelineSteps.length) {
+      clearInterval(interval);
+      renderPipelineSteps();
+    }
+  }, 800);
+}
+
+// ─── CI/CD steps ──────────────────────────────────────────────
+const cicdSteps = [
+  { name: 'Run Unit Tests (27/27 passed)', state: 'done', time: '48s' },
+  { name: 'Model Quality Gate (acc ≥ 0.75 ✓)', state: 'done', time: '12s' },
+  { name: 'Security Scan (Bandit)', state: 'done', time: '9s' },
+  { name: 'Build Docker Image', state: 'done', time: '2m 14s' },
+  { name: 'Deploy → Staging', state: 'done', time: '34s' },
+  { name: 'Deploy → Production (approved)', state: 'done', time: '41s' }
+];
+
+function renderCicdSteps() {
+  const container = document.getElementById('cicd-steps');
+  container.innerHTML = '';
+  cicdSteps.forEach(step => {
+    container.innerHTML += `
+      <div class="pipeline-step ${step.state}">
+        <div class="step-icon ${step.state}">✓</div>
+        <div class="step-name">${step.name}</div>
+        <div class="step-time">${step.time}</div>
+      </div>`;
+  });
+}
+renderCicdSteps();
+
+// ─── Retraining history chart ─────────────────────────────────
+const retrainRuns = ['Run 1', 'Run 2', 'Run 3', 'Run 4', 'Run 5', 'Run 6', 'Run 7'];
+const retrainAccs = [0.841, 0.855, 0.852, 0.867, 0.861, 0.873, 0.879];
+const ctxRH = document.getElementById('chartRetrainingHistory').getContext('2d');
+new Chart(ctxRH, {
+  type: 'line',
+  data: {
+    labels: retrainRuns,
+    datasets: [{
+      label: 'Accuracy per run',
+      data: retrainAccs,
+      borderColor: '#06b6d4',
+      backgroundColor: 'rgba(6,182,212,0.08)',
+      fill: true,
+      tension: 0.3,
+      borderWidth: 2,
+      pointRadius: 5,
+      pointBackgroundColor: retrainAccs.map((_, i) => i === 6 ? '#10b981' : '#06b6d4')
+    }]
+  },
+  options: {
+    ...chartDefaults,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: ctx => ` Accuracy: ${ctx.raw}` } }
+    },
+    scales: { ...chartDefaults.scales, y: { ...chartDefaults.scales.y, min: 0.82, max: 0.91 } }
+  }
+});
+</script>
+</body>
+</html>
