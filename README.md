@@ -336,14 +336,18 @@ pytest --cov=src --cov-report=term-missing
 
 ---
 ##Project Screenshots
-<img width="2940" height="1912" alt="image" src="https://github.com/user-attachments/assets/5f8df7d0-22d0-4003-a2bd-1b6e5cf84eae" />
-<img width="2940" height="1912" alt="image" src="https://github.com/user-attachments/assets/c82067c8-d91a-44ef-94ad-85f403e6e4a2" />
-<img width="2940" height="1912" alt="image" src="https://github.com/user-attachments/assets/553f5f75-ff70-4a46-a4d0-5dbf18654fe1" />
-<img width="2940" height="1912" alt="image" src="https://github.com/user-attachments/assets/ffb89803-5289-4399-bd53-3b18fcad5c6c" />
-<img width="2940" height="1912" alt="image" src="https://github.com/user-attachments/assets/67ac0ad8-9a03-461d-a365-c18ef848b306" />
-<img width="2940" height="1912" alt="image" src="https://github.com/user-attachments/assets/e41a02fa-1b69-449b-84b0-f8566cd7e694" />
-<img width="2940" height="1912" alt="image" src="https://github.com/user-attachments/assets/1fb53999-86eb-41a6-82e9-8fac88821217" />
-<img width="2940" height="1912" alt="image" src="https://github.com/user-attachments/assets/f725d168-0f74-4e95-82e4-35b391338d60" />
+```
+<img width="1468" height="878" alt="Screenshot 2026-05-27 at 07 30 21" src="https://github.com/user-attachments/assets/7da67824-6f39-4607-acc7-a8cffc8f050b" />
+<img width="1441" height="683" alt="Screenshot 2026-05-27 at 07 31 24" src="https://github.com/user-attachments/assets/cfa531b8-f587-4f01-a984-86f2cdcdda08" />
+<img width="1467" height="880" alt="Screenshot 2026-05-27 at 07 31 31" src="https://github.com/user-attachments/assets/b6aea7cd-df6f-41bf-80bc-2518d18bad64" />
+<img width="1465" height="881" alt="Screenshot 2026-05-27 at 07 31 41" src="https://github.com/user-attachments/assets/a4bba50d-4e91-4822-9d67-d507bc70de40" />
+<img width="1467" height="877" alt="Screenshot 2026-05-27 at 07 31 47" src="https://github.com/user-attachments/assets/52c58ab1-3222-4262-a59a-2b1f7aa32034" />
+<img width="1469" height="879" alt="Screenshot 2026-05-27 at 07 31 50" src="https://github.com/user-attachments/assets/17d92f04-f458-4e27-a0b8-fea8e1eaf4a9" />
+<img width="1467" height="881" alt="Screenshot 2026-05-27 at 07 32 01" src="https://github.com/user-attachments/assets/1ecd05e0-68bd-4a54-bc35-f5e91682e9bd" />
+<img width="1466" height="879" alt="Screenshot 2026-05-27 at 07 32 06" src="https://github.com/user-attachments/assets/fccd3eb3-bfaf-4264-8098-3d044288b3d9" />
+<img width="1468" height="879" alt="Screenshot 2026-05-27 at 07 32 23" src="https://github.com/user-attachments/assets/e2197dce-1101-4f1c-ade3-63c82035a809" />
+<img width="1470" height="956" alt="Screenshot 2026-05-27 at 07 29 36" src="https://github.com/user-attachments/assets/9673d2f6-c4ea-4420-9e2f-6f85c5848c71" />
+```
 
 
 ## 📁 Project Structure
