@@ -336,7 +336,7 @@ pytest --cov=src --cov-report=term-missing
 
 ---
 ##Project Screenshots
-```
+---
 <img width="1468" height="878" alt="Screenshot 2026-05-27 at 07 30 21" src="https://github.com/user-attachments/assets/7da67824-6f39-4607-acc7-a8cffc8f050b" />
 <img width="1441" height="683" alt="Screenshot 2026-05-27 at 07 31 24" src="https://github.com/user-attachments/assets/cfa531b8-f587-4f01-a984-86f2cdcdda08" />
 <img width="1467" height="880" alt="Screenshot 2026-05-27 at 07 31 31" src="https://github.com/user-attachments/assets/b6aea7cd-df6f-41bf-80bc-2518d18bad64" />
@@ -348,8 +348,8 @@ pytest --cov=src --cov-report=term-missing
 <img width="1468" height="879" alt="Screenshot 2026-05-27 at 07 32 23" src="https://github.com/user-attachments/assets/e2197dce-1101-4f1c-ade3-63c82035a809" />
 <img width="1470" height="956" alt="Screenshot 2026-05-27 at 07 29 36" src="https://github.com/user-attachments/assets/9673d2f6-c4ea-4420-9e2f-6f85c5848c71" />
 
-```
 
+---
 
 ## 📁 Project Structure
 
