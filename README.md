@@ -335,6 +335,16 @@ pytest --cov=src --cov-report=term-missing
 ```
 
 ---
+##Project Screenshots
+<img width="2940" height="1912" alt="image" src="https://github.com/user-attachments/assets/5f8df7d0-22d0-4003-a2bd-1b6e5cf84eae" />
+<img width="2940" height="1912" alt="image" src="https://github.com/user-attachments/assets/c82067c8-d91a-44ef-94ad-85f403e6e4a2" />
+<img width="2940" height="1912" alt="image" src="https://github.com/user-attachments/assets/553f5f75-ff70-4a46-a4d0-5dbf18654fe1" />
+<img width="2940" height="1912" alt="image" src="https://github.com/user-attachments/assets/ffb89803-5289-4399-bd53-3b18fcad5c6c" />
+<img width="2940" height="1912" alt="image" src="https://github.com/user-attachments/assets/67ac0ad8-9a03-461d-a365-c18ef848b306" />
+<img width="2940" height="1912" alt="image" src="https://github.com/user-attachments/assets/e41a02fa-1b69-449b-84b0-f8566cd7e694" />
+<img width="2940" height="1912" alt="image" src="https://github.com/user-attachments/assets/1fb53999-86eb-41a6-82e9-8fac88821217" />
+<img width="2940" height="1912" alt="image" src="https://github.com/user-attachments/assets/f725d168-0f74-4e95-82e4-35b391338d60" />
+
 
 ## 📁 Project Structure
 
