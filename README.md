@@ -26,33 +26,8 @@
 
 ## 🏗️ Architecture Overview
 
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    MLOps Platform Architecture                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
-│  Client ──► API Gateway ──► FastAPI Application                 │
-│                              │                                   │
-│                    ┌─────────┼──────────┐                       │
-│                    │         │          │                        │
-│              Model Registry  Drift    Metrics                    │
-│                    │      Detector   Collector                   │
-│                    │         │          │                        │
-│                    └────┬────┘          │                        │
-│                         │               │                        │
-│              ┌──────────▼──────────┐    │                        │
-│              │  Retraining Pipeline │    │                        │
-│              │  (Optuna HPO + Auto  │    │                        │
-│              │   Promotion)         │    │                        │
-│              └──────────────────────┘    │                        │
-│                                          │                        │
-│  ┌─────────────────────────────────────▼──────────┐            │
-│  │  Observability Stack                            │            │
-│  │  Prometheus ──► Grafana ──► Alerts              │            │
-│  │  MLflow (Experiment Tracking)                   │            │
-│  └─────────────────────────────────────────────────┘            │
-└─────────────────────────────────────────────────────────────────┘
-```
+<img width="1408" height="768" alt="Gemini_Generated_Image_j091euj091euj091" src="https://github.com/user-attachments/assets/011f7bb3-2972-4f8b-9c9f-d074a5f68c17" />
+
 
 ---
 
