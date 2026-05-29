@@ -349,6 +349,20 @@ Swagger API Testing
 <img width="1468" height="879" alt="Screenshot 2026-05-27 at 07 32 23" src="https://github.com/user-attachments/assets/e2197dce-1101-4f1c-ade3-63c82035a809" />
 <img width="1470" height="956" alt="Screenshot 2026-05-27 at 07 29 36" src="https://github.com/user-attachments/assets/9673d2f6-c4ea-4420-9e2f-6f85c5848c71" />
 
+---
+
+## ☁️ Live Cloud Deployment
+
+The monitoring dashboard is deployed using **Streamlit Cloud** for public access and real-time inference monitoring. 
+
+### 🔗 Live Dashboard URL
+[![Streamlit App](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://real-time-mlops-platform-9mirtvjav6r8dzquzlpqy7.streamlit.app/)
+
+👉 **[Access the Live Dashboard Here](https://real-time-mlops-platform-9mirtvjav6r8dzquzlpqy7.streamlit.app/)**
+
+> 💡 **Note for Reviewers:** Since the model inference is powered by a local FastAPI backend, ensure that the local backend server and Ngrok tunnel are active to receive real-time predictions on the cloud dashboard.
+
+---
 
 ---
 
