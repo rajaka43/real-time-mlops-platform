@@ -397,7 +397,22 @@ mlops-platform/
 ├── requirements.txt
 └── README.md
 ```
+---
 
+## 🔮 Future Improvements & Roadmap
+
+To transition this platform into a production-grade, enterprise-ready MLOps solution, the following enhancements are planned:
+
+| Category | Improvement | Description |
+| :--- | :--- | :--- |
+| 🚀 **Orchestration** | **Kubernetes Deployment** | Containerizing the FastAPI backend and Streamlit frontend using Docker, and orchestrating them via Kubernetes for automated scaling and high availability. |
+| ⚡ **Data Engineering** | **Real-Time Streaming Pipelines** | Integrating Apache Kafka or RabbitMQ to handle high-throughput, real-time data streaming features. |
+| 📊 **Monitoring** | **Advanced Drift Detection** | Implementing automated data and concept drift monitoring using libraries like Evidently AI or Whylogs to detect model degradation. |
+| 🛡️ **Reliability** | **Model Rollback System** | Setting up an automated CI/CD fallback mechanism to automatically revert to a previous stable model version if anomalies are detected. |
+| 🔒 **Security** | **User Authentication** | Adding secure OAuth2 / JWT-based user authentication to restrict access to the monitoring dashboard and prediction endpoints. |
+| 💾 **Storage** | **Database Integration** | Integrating a robust database solution (e.g., PostgreSQL for relational transaction logging or MongoDB for unstructured payload logs) to persist historical prediction data and performance metrics. |
+
+---
 ---
 
 ## 📄 License
